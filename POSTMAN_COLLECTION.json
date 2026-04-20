@@ -1,0 +1,506 @@
+{
+  "info": {
+    "name": "MeterEye AI Backend API",
+    "description": "Collection complète pour les tests du backend MeterEye AI",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentification",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nouveau@example.com\",\n  \"password\": \"password123\",\n  \"nom\": \"Dupont\",\n  \"prenom\": \"Jean\",\n  \"telephone\": \"+221123456789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gestion Compteurs",
+      "item": [
+        {
+          "name": "Créer Compteur",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"COMP-001\",\n  \"adresse\": \"123 Rue de la République, Dakar\",\n  \"typeCompteur\": \"CLASSIQUE\",\n  \"valeurInitiale\": 1500.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compteurs",
+              "host": ["{{baseUrl}}"],
+              "path": ["compteurs"]
+            }
+          }
+        },
+        {
+          "name": "Configurer Mode Lecture",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"modeLecture\": \"ESP32_CAM\",\n  \"commentaire\": \"Configuration pour lecture automatique\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compteurs/1/mode-lecture",
+              "host": ["{{baseUrl}}"],
+              "path": ["compteurs", "1", "mode-lecture"]
+            }
+          }
+        },
+        {
+          "name": "Réinitialiser Compteur",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motif\": \"Remplacement compteur défectueux\",\n  \"commentaire\": \"Ancien compteur changé le 13/04/2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compteurs/1/reinitialiser",
+              "host": ["{{baseUrl}}"],
+              "path": ["compteurs", "1", "reinitialiser"]
+            }
+          }
+        },
+        {
+          "name": "Recharger Compteur",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"compteurId\": 1,\n  \"montant\": 5000.0,\n  \"codeRecharge\": \"123456789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compteurs/recharger",
+              "host": ["{{baseUrl}}"],
+              "path": ["compteurs", "recharger"]
+            }
+          }
+        },
+        {
+          "name": "Lister Compteurs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/compteurs",
+              "host": ["{{baseUrl}}"],
+              "path": ["compteurs"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gestion Modules ESP32-CAM",
+      "item": [
+        {
+          "name": "Scanner QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCode\": \"MET-ESP32-ABC123XYZ\",\n  \"userId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/scan",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "scan"]
+            }
+          }
+        },
+        {
+          "name": "Associer Module-Compteur",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"compteurId\": 1,\n  \"captureInterval\": 3600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/550e8400-e29b-41d4-a716-446655440000/associate",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "550e8400-e29b-41d4-a716-446655440000", "associate"]
+            }
+          }
+        },
+        {
+          "name": "Handshake Module",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firmwareVersion\": \"1.0.0\",\n  \"ipAddress\": \"192.168.1.100\",\n  \"wifiSsid\": \"HomeWiFi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/550e8400-e29b-41d4-a716-446655440000/handshake",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "550e8400-e29b-41d4-a716-446655440000", "handshake"]
+            }
+          }
+        },
+        {
+          "name": "Heartbeat Module",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timestamp\": \"2026-04-13T10:30:00Z\",\n  \"batteryLevel\": 85,\n  \"signalStrength\": -45,\n  \"temperature\": 25.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/550e8400-e29b-41d4-a716-446655440000/heartbeat",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "550e8400-e29b-41d4-a716-446655440000", "heartbeat"]
+            }
+          }
+        },
+        {
+          "name": "Statut Module",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/devices/550e8400-e29b-41d4-a716-446655440000/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "550e8400-e29b-41d4-a716-446655440000", "status"]
+            }
+          }
+        },
+        {
+          "name": "Lister Modules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/devices/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "my"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gestion Relevés",
+      "item": [
+        {
+          "name": "Relevé Manuel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"compteurId\": 1,\n  \"valeur\": 1525.5,\n  \"commentaire\": \"Lecture manuelle du 13/04/2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/readings/manual",
+              "host": ["{{baseUrl}}"],
+              "path": ["readings", "manual"]
+            }
+          }
+        },
+        {
+          "name": "Upload Image ESP32-CAM",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/path/to/image.jpg"
+                },
+                {
+                  "key": "deviceCode",
+                  "value": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                {
+                  "key": "commentaire",
+                  "value": "Capture automatique ESP32-CAM"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/readings/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["readings", "upload"]
+            }
+          }
+        },
+        {
+          "name": "Relevé Capteur",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"compteurId\": 1,\n  \"valeur\": 1532.0,\n  \"deviceCode\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"commentaire\": \"Lecture capteur IoT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/readings/sensor",
+              "host": ["{{baseUrl}}"],
+              "path": ["readings", "sensor"]
+            }
+          }
+        },
+        {
+          "name": "Historique Relevés",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/readings/historique/1?startDate=2026-04-01&endDate=2026-04-30&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["readings", "historique", "1"]
+            }
+          }
+        },
+        {
+          "name": "Dernier Relevé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/readings/latest/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["readings", "latest", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

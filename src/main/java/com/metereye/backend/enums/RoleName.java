@@ -5,6 +5,5 @@ public enum RoleName {
     ADMIN,
     PROPRIETAIRE,
     LOCATAIRE,
-    CASHPOWER,
-    CLASSIQUE
+    PERSONNEL
 }

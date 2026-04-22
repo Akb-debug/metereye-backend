@@ -49,7 +49,7 @@ public class AuthService {
         try {
             roleName = RoleName.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Rôle invalide. Les rôles valides sont: ADMIN, PROPRIETAIRE, LOCATAIRE, CASHPOWER, CLASSIQUE");
+            throw new RuntimeException("Rôle invalide. Les rôles valides sont: ADMIN, PROPRIETAIRE, LOCATAIRE, PERSONNEL");
         }
 
         Role role = roleRepository.findByName(roleName)
@@ -69,14 +69,14 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         // Générer le token JWT
-        String token = jwtService.generateToken(savedUser);
+     //   String token = jwtService.generateToken(savedUser);
 
         // Sauvegarder le token
-        saveToken(savedUser, token);
+      //  saveToken(savedUser, token);
 
         // Retourner la réponse
         return AuthResponse.builder()
-                .token(token)
+             //   .token(token)
                 .role(role.getName().name())
                 .nomComplet(savedUser.getNomComplet())
                 .userId(savedUser.getId())

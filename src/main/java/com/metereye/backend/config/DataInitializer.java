@@ -24,8 +24,8 @@ public class DataInitializer implements CommandLineRunner {
                 RoleName.ADMIN,
                 RoleName.PROPRIETAIRE,
                 RoleName.LOCATAIRE,
-                RoleName.CASHPOWER,
-                RoleName.CLASSIQUE
+                RoleName.PERSONNEL
+                
         );
 
         for (RoleName roleName : rolesToCreate) {

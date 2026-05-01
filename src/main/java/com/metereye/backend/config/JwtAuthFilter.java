@@ -48,19 +48,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
 
         try {
-            // Extraire l'email du token
             userEmail = jwtService.extractEmail(jwt);
 
-            // Si l'email est présent et qu'aucun utilisateur n'est déjà authentifié
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                // Vérifier si le token est valide et non révoqué
-                var isTokenValid = tokenRepository.findByToken(jwt)
+                boolean isTokenInDb = tokenRepository.findByToken(jwt)
                         .map(t -> !t.isRevoked() && !t.isExpired())
                         .orElse(false);
 
-                if (jwtService.isTokenValid(jwt, userDetails) && isTokenValid) {
+                boolean isJwtValid = jwtService.isTokenValid(jwt, userDetails);
+
+                logger.debug("JWT valide: " + isJwtValid + " | Token en DB: " + isTokenInDb + " | Email: " + userEmail);
+
+                if (isJwtValid && isTokenInDb) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -68,10 +69,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.debug("Utilisateur authentifié: " + userEmail);
+                } else {
+                    logger.warn("Authentification refusée pour " + userEmail + " - JWT valide: " + isJwtValid + ", Token en DB: " + isTokenInDb);
                 }
             }
         } catch (Exception e) {
-            // En cas d'erreur de validation du token, on continue sans authentification
             logger.error("Erreur de validation du token JWT: " + e.getMessage());
         }
 

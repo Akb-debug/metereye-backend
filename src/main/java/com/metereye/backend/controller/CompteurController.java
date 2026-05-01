@@ -3,14 +3,11 @@ package com.metereye.backend.controller;
 
 import com.metereye.backend.dto.*;
 import com.metereye.backend.entity.User;
-import com.metereye.backend.repository.UserRepository;
 import com.metereye.backend.service.CompteurService;
 import com.metereye.backend.utils.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -20,10 +17,9 @@ import java.util.List;
 @RequestMapping("/api/compteurs")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
-public class CompteurController {
+public class CompteurController extends BaseController {
 
     private final CompteurService compteurService;
-    private final UserRepository userRepository;
 
     /**
      * Créer un nouveau compteur
@@ -62,7 +58,8 @@ public class CompteurController {
     @GetMapping("/{id}")
     public BaseResponse<CompteurResponseDTO> getCompteurById(@PathVariable Long id) {
         try {
-            CompteurResponseDTO compteur = compteurService.getCompteurById(id);
+            User currentUser = getCurrentUser();
+            CompteurResponseDTO compteur = compteurService.getCompteurById(id, currentUser);
             return BaseResponse.success(compteur);
         } catch (Exception e) {
             return BaseResponse.notFound(e.getMessage());
@@ -76,7 +73,8 @@ public class CompteurController {
     @DeleteMapping("/{id}")
     public BaseResponse<CompteurResponseDTO> desactiverCompteur(@PathVariable Long id) {
         try {
-            CompteurResponseDTO compteur = compteurService.desactiverCompteur(id);
+            User currentUser = getCurrentUser();
+            CompteurResponseDTO compteur = compteurService.desactiverCompteur(id, currentUser);
             return BaseResponse.success("Compteur désactivé avec succès", compteur);
         } catch (Exception e) {
             return BaseResponse.error(500, e.getMessage());
@@ -108,7 +106,8 @@ public class CompteurController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
-            List<ReleveResponseDTO> releves = compteurService.getHistoriqueReleves(id, startDate, endDate);
+            User currentUser = getCurrentUser();
+            List<ReleveResponseDTO> releves = compteurService.getHistoriqueReleves(id, startDate, endDate, currentUser);
             return BaseResponse.success(releves);
         } catch (Exception e) {
             return BaseResponse.error(500, e.getMessage());
@@ -162,10 +161,4 @@ public class CompteurController {
         }
     }
 
-    private User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-    }
 }

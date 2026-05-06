@@ -8,9 +8,11 @@ import com.metereye.backend.entity.Releve;
 import com.metereye.backend.entity.User;
 import com.metereye.backend.enums.SourceReleve;
 import com.metereye.backend.enums.StatutReleve;
+import com.metereye.backend.enums.TypeAlerte;
 import com.metereye.backend.enums.TypeCompteur;
 import com.metereye.backend.repository.CompteurRepository;
 import com.metereye.backend.repository.ReleveRepository;
+import com.metereye.backend.service.AlerteService;
 import com.metereye.backend.service.ImageService;
 import com.metereye.backend.service.ReadingService;
 import lombok.RequiredArgsConstructor;
@@ -31,9 +33,14 @@ import java.util.Optional;
 @Transactional
 public class ReadingServiceImpl implements ReadingService {
 
+    private static final double SEUIL_CREDIT_FAIBLE = 1000.0;
+    private static final double SEUIL_CONSOMMATION_ANORMALE = 2.0;
+    private static final double SEUIL_JOURS_COUPURE = 2.0;
+
     private final ReleveRepository releveRepository;
     private final CompteurRepository compteurRepository;
     private final ImageService imageService;
+    private final AlerteService alerteService;
 
     @Override
     public ReadingResponse createManualReading(ManualReadingRequest request, User user) {
@@ -58,6 +65,8 @@ public class ReadingServiceImpl implements ReadingService {
 
         releve = releveRepository.save(releve);
 
+        declencherAlertesApresReleve(compteur, releve, user);
+
         log.info("Relevé manuel {} créé avec succès", releve.getId());
         return mapToResponse(releve);
     }
@@ -80,7 +89,6 @@ public class ReadingServiceImpl implements ReadingService {
         releve = releveRepository.save(releve);
 
         var image = imageService.saveImage(file, releve);
-
         imageService.processImageWithOCR(image.getId());
 
         var processedImage = imageService.getImage(image.getId());
@@ -93,7 +101,6 @@ public class ReadingServiceImpl implements ReadingService {
         }
 
         Double valeurOCR = processedImage.getOcrValue();
-
         Double consommation = calculerConsommation(compteur, valeurOCR);
 
         releve.setValeur(valeurOCR);
@@ -104,6 +111,8 @@ public class ReadingServiceImpl implements ReadingService {
         compteurRepository.save(compteur);
 
         releve = releveRepository.save(releve);
+
+        declencherAlertesApresReleve(compteur, releve, user);
 
         log.info("Relevé image {} créé avec succès", releve.getId());
         return mapToResponse(releve);
@@ -133,24 +142,21 @@ public class ReadingServiceImpl implements ReadingService {
 
         releve = releveRepository.save(releve);
 
+        declencherAlertesApresReleve(compteur, releve, user);
+
         log.info("Relevé capteur {} créé avec succès", releve.getId());
         return mapToResponse(releve);
     }
 
     @Override
     public Page<ReadingResponse> getMeterReadings(Long meterId, Pageable pageable, User user) {
-        log.info("Récupération relevés pour compteur {} par utilisateur {}", meterId, user.getId());
-
         Compteur compteur = findAndValidateMeter(meterId, user);
-
         Page<Releve> releves = releveRepository.findByCompteurOrderByDateTimeDesc(compteur, pageable);
         return releves.map(this::mapToResponse);
     }
 
     @Override
     public ReadingResponse getLatestReading(Long meterId, User user) {
-        log.info("Récupération dernier relevé pour compteur {} par utilisateur {}", meterId, user.getId());
-
         Compteur compteur = findAndValidateMeter(meterId, user);
 
         Optional<Releve> releve = releveRepository.findTopByCompteurOrderByDateTimeDesc(compteur);
@@ -171,17 +177,14 @@ public class ReadingServiceImpl implements ReadingService {
         Double ancienneValeur = compteur.getValeurActuelle();
 
         if (ancienneValeur == null) {
-            log.info("Premier relevé du compteur {}. Consommation = 0", compteur.getId());
             return 0.0;
         }
 
-        TypeCompteur typeCompteur = compteur.getTypeCompteur();
-
-        if (typeCompteur == TypeCompteur.CLASSIQUE) {
+        if (compteur.getTypeCompteur() == TypeCompteur.CLASSIQUE) {
             return calculerConsommationClassique(compteur, ancienneValeur, nouvelleValeur);
         }
 
-        if (typeCompteur == TypeCompteur.CASH_POWER) {
+        if (compteur.getTypeCompteur() == TypeCompteur.CASH_POWER) {
             return calculerConsommationCashPower(compteur, ancienneValeur, nouvelleValeur);
         }
 
@@ -194,19 +197,28 @@ public class ReadingServiceImpl implements ReadingService {
             Double nouvelleValeur
     ) {
         if (nouvelleValeur < ancienneValeur) {
-            log.error(
-                    "Anomalie compteur classique {} : ancienne valeur {}, nouvelle valeur {}",
-                    compteur.getId(),
-                    ancienneValeur,
-                    nouvelleValeur
+            safeCreateAlert(
+                    compteur.getProprietaire(),
+                    compteur,
+                    TypeAlerte.ANOMALIE_CONSOMMATION,
+                    "Anomalie détectée : la valeur du compteur classique a diminué."
             );
 
-            throw new RuntimeException(
-                    "Valeur invalide : un compteur classique ne peut pas diminuer"
+            throw new RuntimeException("Valeur invalide : un compteur classique ne peut pas diminuer");
+        }
+
+        Double consommation = nouvelleValeur - ancienneValeur;
+
+        if (consommation > ancienneValeur * SEUIL_CONSOMMATION_ANORMALE) {
+            safeCreateAlert(
+                    compteur.getProprietaire(),
+                    compteur,
+                    TypeAlerte.ANOMALIE_CONSOMMATION,
+                    "Consommation anormalement élevée détectée sur le compteur " + compteur.getReference()
             );
         }
 
-        return nouvelleValeur - ancienneValeur;
+        return consommation;
     }
 
     private Double calculerConsommationCashPower(
@@ -215,37 +227,68 @@ public class ReadingServiceImpl implements ReadingService {
             Double nouvelleValeur
     ) {
         if (nouvelleValeur < ancienneValeur) {
-            Double consommation = ancienneValeur - nouvelleValeur;
-
-            log.info(
-                    "Consommation CashPower détectée pour compteur {} : ancienne valeur {}, nouvelle valeur {}, consommation {}",
-                    compteur.getId(),
-                    ancienneValeur,
-                    nouvelleValeur,
-                    consommation
-            );
-
-            return consommation;
+            return ancienneValeur - nouvelleValeur;
         }
 
         if (nouvelleValeur > ancienneValeur) {
-            log.info(
-                    "Recharge CashPower détectée automatiquement pour compteur {} : ancienne valeur {}, nouvelle valeur {}. Consommation enregistrée = 0",
-                    compteur.getId(),
-                    ancienneValeur,
-                    nouvelleValeur
-            );
-
+            log.info("Recharge CashPower détectée automatiquement pour compteur {}", compteur.getId());
             return 0.0;
         }
 
-        log.info(
-                "Aucune variation détectée pour compteur CashPower {} : valeur {}",
-                compteur.getId(),
-                nouvelleValeur
+        return 0.0;
+    }
+
+    private void declencherAlertesApresReleve(Compteur compteur, Releve releve, User user) {
+        safeCreateAlert(
+                user,
+                compteur,
+                TypeAlerte.NOUVEAU_RELEVE,
+                "Nouveau relevé enregistré pour le compteur " + compteur.getReference()
         );
 
-        return 0.0;
+        if (compteur.getTypeCompteur() == TypeCompteur.CASH_POWER) {
+            verifierCreditCashPower(compteur, releve, user);
+        }
+    }
+
+    private void verifierCreditCashPower(Compteur compteur, Releve releve, User user) {
+        Double creditActuel = compteur.getCreditActuel();
+
+        if (creditActuel == null) {
+            return;
+        }
+
+        if (creditActuel <= SEUIL_CREDIT_FAIBLE) {
+            safeCreateAlert(
+                    user,
+                    compteur,
+                    TypeAlerte.CREDIT_FAIBLE,
+                    "Votre crédit Cash Power est faible : " + creditActuel + " FCFA restants."
+            );
+        }
+
+        Double consommation = releve.getConsommationCalculee();
+
+        if (consommation != null && consommation > 0) {
+            double joursRestants = creditActuel / consommation;
+
+            if (joursRestants <= SEUIL_JOURS_COUPURE) {
+                safeCreateAlert(
+                        user,
+                        compteur,
+                        TypeAlerte.COUPURE_IMMINENTE,
+                        "Coupure probable dans environ " + Math.max(1, Math.round(joursRestants)) + " jour(s)."
+                );
+            }
+        }
+    }
+
+    private void safeCreateAlert(User destination, Compteur compteur, TypeAlerte typeAlerte, String message) {
+        try {
+            alerteService.creerAlerte(destination, compteur, typeAlerte, message);
+        } catch (Exception e) {
+            log.error("Erreur lors du déclenchement de l'alerte {} : {}", typeAlerte, e.getMessage());
+        }
     }
 
     private Compteur findAndValidateMeter(Long meterId, User user) {

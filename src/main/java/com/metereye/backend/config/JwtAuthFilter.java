@@ -1,4 +1,3 @@
-// JwtAuthFilter.java
 package com.metereye.backend.config;
 
 import com.metereye.backend.repository.TokenRepository;
@@ -35,47 +34,54 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
 
-        // Vérifier si le header Authorization est présent et commence par "Bearer "
+        logger.warn("URI: " + request.getRequestURI() + " | Authorization header présent: " + (authHeader != null));
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extraire le token JWT
-        jwt = authHeader.substring(7);
+        final String jwt = authHeader.substring(7);
+        final String userEmail;
 
         try {
             userEmail = jwtService.extractEmail(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                boolean isTokenInDb = tokenRepository.findByToken(jwt)
-                        .map(t -> !t.isRevoked() && !t.isExpired())
-                        .orElse(false);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
                 boolean isJwtValid = jwtService.isTokenValid(jwt, userDetails);
 
-                logger.debug("JWT valide: " + isJwtValid + " | Token en DB: " + isTokenInDb + " | Email: " + userEmail);
+                boolean isTokenInDb = tokenRepository.findByToken(jwt)
+                        .map(token -> !token.isExpired() && !token.isRevoked())
+                        .orElse(false);
+
+                logger.warn("JWT valide: " + isJwtValid + " | Token en DB actif: " + isTokenInDb + " | Email: " + userEmail);
 
                 if (isJwtValid && isTokenInDb) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
                     );
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    logger.debug("Utilisateur authentifié: " + userEmail);
+
+                    logger.warn("Utilisateur authentifié avec succès: " + userEmail);
                 } else {
-                    logger.warn("Authentification refusée pour " + userEmail + " - JWT valide: " + isJwtValid + ", Token en DB: " + isTokenInDb);
+                    logger.warn("Authentification refusée: JWT valide=" + isJwtValid + ", token DB=" + isTokenInDb);
                 }
             }
+
         } catch (Exception e) {
-            logger.error("Erreur de validation du token JWT: " + e.getMessage());
+            logger.error("Erreur JWT: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);

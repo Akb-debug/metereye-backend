@@ -1,4 +1,3 @@
-// AlerteMapper.java
 package com.metereye.backend.mapper;
 
 import com.metereye.backend.dto.AlerteResponseDTO;
@@ -14,6 +13,7 @@ public interface AlerteMapper {
     @Mapping(target = "compteurId", source = "compteur.id")
     @Mapping(target = "compteurReference", source = "compteur.reference")
     @Mapping(target = "typeAlerte", expression = "java(alerte.getTypeAlerte().name())")
+    @Mapping(target = "dateCreation", source = "dateCreation")
     AlerteResponseDTO toResponse(Alerte alerte);
 
     List<AlerteResponseDTO> toResponseList(List<Alerte> alertes);

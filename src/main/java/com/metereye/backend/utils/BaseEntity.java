@@ -1,8 +1,8 @@
-// BaseEntity.java
 package com.metereye.backend.utils;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
@@ -11,7 +11,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @SuperBuilder
 @NoArgsConstructor
 @MappedSuperclass
@@ -23,9 +24,10 @@ public abstract class BaseEntity {
     protected Long id;
 
     @CreatedDate
-    @Column(updatable = false)
+    @Column(name = "date_creation", nullable = false, updatable = false)
     protected LocalDateTime dateCreation;
 
     @LastModifiedDate
+    @Column(name = "date_modification")
     protected LocalDateTime dateModification;
 }

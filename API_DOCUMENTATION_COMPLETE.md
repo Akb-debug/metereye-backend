@@ -12,6 +12,8 @@
 8. [Gestion des Relevés](#gestion-des-relevés)
 9. [Gestion des Images](#gestion-des-images)
 10. [Gestion des Alertes](#gestion-des-alertes)
+11. [Gestion des Notifications](#gestion-des-notifications)
+12. [Gestion des Préférences de Notification](#gestion-des-préférences-de-notification)
 
 ---
 
@@ -509,16 +511,279 @@
 
 ### Base URL: `/api/alertes`
 
-*Note: Ce contrôleur est actuellement désactivé pour résoudre les problèmes de démarrage*
+> **Authentification requise** — `Authorization: Bearer {token}` sur tous les endpoints.  
+> Les alertes sont créées **automatiquement** lors de l'enregistrement d'un relevé (manuel, OCR ou capteur). Il n'existe pas d'endpoint pour créer une alerte manuellement.
+
+---
 
 #### GET `/api/alertes`
-**Description**: Récupérer toutes les alertes de l'utilisateur
+**Description**: Récupérer toutes les alertes de l'utilisateur connecté, triées par date décroissante.
+
+**Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+**Response** — `200 OK` — `List<AlerteResponseDTO>`:
+```json
+[
+  {
+    "id": 16,
+    "typeAlerte": "NOUVEAU_RELEVE",
+    "message": "Nouveau relevé enregistré pour le compteur COMPT-001",
+    "lue": false,
+    "dateCreation": "2026-05-02T07:46:35.499655",
+    "compteurId": 3,
+    "compteurReference": "COMPT-001"
+  },
+  {
+    "id": 15,
+    "typeAlerte": "CREDIT_FAIBLE",
+    "message": "Crédit faible sur le compteur COMPT-001 : 45 kWh restants",
+    "lue": true,
+    "dateCreation": "2026-05-01T14:22:10.123456",
+    "compteurId": 3,
+    "compteurReference": "COMPT-001"
+  }
+]
+```
+
+---
 
 #### GET `/api/alertes/non-lues`
-**Description**: Récupérer les alertes non lues
+**Description**: Récupérer uniquement les alertes non lues de l'utilisateur connecté, triées par date décroissante.
 
-#### PUT `/api/alertes/{id}/lire`
-**Description**: Marquer une alerte comme lue
+**Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+**Response** — `200 OK` — `List<AlerteResponseDTO>`:
+```json
+[
+  {
+    "id": 16,
+    "typeAlerte": "NOUVEAU_RELEVE",
+    "message": "Nouveau relevé enregistré pour le compteur COMPT-001",
+    "lue": false,
+    "dateCreation": "2026-05-02T07:46:35.499655",
+    "compteurId": 3,
+    "compteurReference": "COMPT-001"
+  }
+]
+```
+
+*Renvoie une liste vide `[]` si toutes les alertes ont été lues.*
+
+---
+
+#### PATCH `/api/alertes/{id}/lue`
+**Description**: Marquer une alerte spécifique comme lue. Sans effet si l'alerte est déjà lue.
+
+**Path Parameter**:
+- `id` (Long): Identifiant de l'alerte
+
+**Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+**Response** — `200 OK` — corps vide (void)
+
+---
+
+#### PATCH `/api/alertes/tout-lu`
+**Description**: Marquer **toutes** les alertes non lues de l'utilisateur comme lues en une seule requête.
+
+**Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+**Response** — `200 OK` — corps vide (void)
+
+---
+
+### Types d'alertes (`typeAlerte`)
+
+| Valeur | Description |
+|--------|-------------|
+| `NOUVEAU_RELEVE` | Un nouveau relevé a été enregistré pour un compteur |
+| `CREDIT_FAIBLE` | Le crédit d'un compteur Cash Power est en dessous du seuil |
+| `COUPURE_IMMINENTE` | Coupure prévue imminente (crédit très bas) |
+| `ANOMALIE_CONSOMMATION` | Consommation anormalement élevée détectée |
+| `RAPPORT_DISPONIBLE` | Un rapport de consommation est prêt |
+| `CONNEXION_UTILISATEUR` | Connexion d'un utilisateur détectée |
+| `APPAREIL_HORS_LIGNE` | Un module ESP32 ne répond plus |
+| `APPAREIL_RECONNECTE` | Un module ESP32 s'est reconnecté |
+
+---
+
+## Gestion des Notifications
+
+### Base URL: `/api/notifications`
+
+> Les notifications sont créées **automatiquement** lors de la création d'une alerte, via les canaux activés dans les préférences utilisateur (PUSH, EMAIL, SMS). Il n'existe pas d'endpoint pour créer une notification manuellement.
+
+---
+
+#### GET `/api/notifications`
+**Description**: Récupérer toutes les notifications envoyées à l'utilisateur connecté, triées par date décroissante.
+
+**Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+**Response** — `200 OK` — `List<NotificationResponseDTO>`:
+```json
+[
+  {
+    "id": 3,
+    "canal": "EMAIL",
+    "status": "SENT",
+    "titre": "NOUVEAU_RELEVE",
+    "message": "Nouveau relevé enregistré pour le compteur COMPT-001",
+    "dateEnvoi": "2026-05-02T07:46:35.265734"
+  },
+  {
+    "id": 2,
+    "canal": "PUSH",
+    "status": "SENT",
+    "titre": "NOUVEAU_RELEVE",
+    "message": "Nouveau relevé enregistré pour le compteur COMPT-001",
+    "dateEnvoi": "2026-05-02T07:46:35.100123"
+  },
+  {
+    "id": 1,
+    "canal": "SMS",
+    "status": "FAILED",
+    "titre": "CREDIT_FAIBLE",
+    "message": "Crédit faible sur le compteur COMPT-001",
+    "dateEnvoi": "2026-05-01T14:22:10.003456"
+  }
+]
+```
+
+### Canaux d'envoi (`canal`)
+
+| Valeur | Description |
+|--------|-------------|
+| `PUSH` | Notification push mobile (Firebase FCM) |
+| `EMAIL` | Email envoyé à l'adresse de l'utilisateur |
+| `SMS` | SMS envoyé au numéro de téléphone de l'utilisateur |
+
+### Statuts de notification (`status`)
+
+| Valeur | Description |
+|--------|-------------|
+| `PENDING` | En attente d'envoi |
+| `SENT` | Envoyée avec succès |
+| `FAILED` | Échec de l'envoi (service indisponible, token FCM invalide, etc.) |
+
+---
+
+## Gestion des Préférences de Notification
+
+### Base URL: `/api/notification-preferences`
+
+> **Authentification requise** sur les deux endpoints.
+
+---
+
+#### GET `/api/notification-preferences`
+**Description**: Récupérer les préférences de notification de l'utilisateur connecté.  
+Si aucune préférence n'a encore été configurée, des valeurs par défaut sont renvoyées (PUSH et EMAIL activés, SMS désactivé, toutes les catégories activées).
+
+**Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+**Response** — `200 OK` — `NotificationPreferenceResponseDTO`:
+```json
+{
+  "pushEnabled": true,
+  "emailEnabled": true,
+  "smsEnabled": false,
+  "creditAlerts": true,
+  "anomalyAlerts": true,
+  "systemAlerts": true
+}
+```
+
+---
+
+#### PUT `/api/notification-preferences`
+**Description**: Mettre à jour les préférences de notification de l'utilisateur connecté.
+
+**Headers**:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+Content-Type: application/json
+```
+
+**Request Body** — `NotificationPreferenceRequestDTO`:
+```json
+{
+  "pushEnabled": true,
+  "emailEnabled": true,
+  "smsEnabled": false,
+  "creditAlerts": true,
+  "anomalyAlerts": true,
+  "systemAlerts": false
+}
+```
+
+**Response** — `200 OK` — `NotificationPreferenceResponseDTO`:
+```json
+{
+  "pushEnabled": true,
+  "emailEnabled": true,
+  "smsEnabled": false,
+  "creditAlerts": true,
+  "anomalyAlerts": true,
+  "systemAlerts": false
+}
+```
+
+### Champs des préférences
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `pushEnabled` | Boolean | Activer les notifications push (Firebase FCM) |
+| `emailEnabled` | Boolean | Activer les notifications par email |
+| `smsEnabled` | Boolean | Activer les notifications par SMS |
+| `creditAlerts` | Boolean | Recevoir les alertes de crédit faible / coupure imminente |
+| `anomalyAlerts` | Boolean | Recevoir les alertes d'anomalie de consommation |
+| `systemAlerts` | Boolean | Recevoir les alertes système (appareil hors ligne, reconnecté) |
+
+---
+
+### Flux automatique : Relevé → Alerte → Notifications
+
+```
+POST /api/readings/manual
+         │
+         ▼
+  Relevé enregistré en base
+         │
+         ▼
+  AlerteServiceImpl.creerAlerte()      ← transaction isolée (REQUIRES_NEW)
+         │  typeAlerte = NOUVEAU_RELEVE
+         │  message = "Nouveau relevé enregistré pour le compteur {ref}"
+         ▼
+  Alerte persistée  →  alertes table
+         │
+         ▼
+  NotificationServiceImpl.notifyUser()
+         │
+         ├── pref.pushEnabled  → PushNotificationService → Notification (canal=PUSH)
+         ├── pref.emailEnabled → EmailService            → Notification (canal=EMAIL)
+         └── pref.smsEnabled   → SmsService              → Notification (canal=SMS)
+                                                              ↓
+                                                       notifications table
+```
 
 ---
 
@@ -684,4 +949,4 @@ POST /api/readings/sensor
 
 ---
 
-*Documentation générée le 24 avril 2026 - MeterEye AI Backend v1.0.0*
+*Documentation mise à jour le 05 mai 2026 - MeterEye AI Backend v1.0.0*

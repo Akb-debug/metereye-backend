@@ -1,9 +1,18 @@
-// TypeAlerte.java
 package com.metereye.backend.enums;
 
 public enum TypeAlerte {
+
     CREDIT_FAIBLE,
     COUPURE_IMMINENTE,
-    ANOMALIE,
-    RAPPORT_DISPONIBLE
+
+    ANOMALIE_CONSOMMATION,
+
+    RAPPORT_DISPONIBLE,
+
+    NOUVEAU_RELEVE,
+
+    CONNEXION_UTILISATEUR,
+
+    APPAREIL_HORS_LIGNE,
+    APPAREIL_RECONNECTE
 }

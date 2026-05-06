@@ -13,14 +13,14 @@ public interface CompteurService {
 
     // Gestion des compteurs
     CompteurResponseDTO creerCompteur(CompteurRequestDTO request, User proprietaire);
-    CompteurResponseDTO getCompteurById(Long id);
+    CompteurResponseDTO getCompteurById(Long id, User user);
     List<CompteurResponseDTO> getCompteursByUser(Long userId);
     List<CompteurResponseDTO> getAllCompteurs();
-    CompteurResponseDTO desactiverCompteur(Long id);
+    CompteurResponseDTO desactiverCompteur(Long id, User user);
 
     // Gestion des relevés
     ReleveResponseDTO ajouterReleve(ReleveRequestDTO request, User user);
-    List<ReleveResponseDTO> getHistoriqueReleves(Long compteurId, LocalDateTime startDate, LocalDateTime endDate);
+    List<ReleveResponseDTO> getHistoriqueReleves(Long compteurId, LocalDateTime startDate, LocalDateTime endDate, User user);
     Double calculerConsommation(Long compteurId, LocalDateTime startDate, LocalDateTime endDate);
 
     // Statistiques

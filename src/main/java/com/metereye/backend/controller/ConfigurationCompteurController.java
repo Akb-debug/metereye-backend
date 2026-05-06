@@ -1,7 +1,6 @@
 // ConfigurationCompteurController.java
 package com.metereye.backend.controller;
 
-import com.metereye.backend.dto.CompteurResponseDTO;
 import com.metereye.backend.dto.ConfigurationLectureDTO;
 import com.metereye.backend.dto.ReinitialisationCompteurDTO;
 import com.metereye.backend.entity.Compteur;
@@ -61,10 +60,7 @@ public class ConfigurationCompteurController {
     @GetMapping("/{id}/statut-configuration")
     @Operation(summary = "Vérifier le statut de configuration d'un compteur")
     public ResponseEntity<Object> getStatutConfiguration(@PathVariable Long id) {
-        
-        CompteurResponseDTO compteurDTO = compteurService.getCompteurById(id);
-        
-        // Récupérer l'entité Compteur pour accéder aux méthodes métier
+
         Compteur compteur = compteurRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compteur non trouvé"));
         

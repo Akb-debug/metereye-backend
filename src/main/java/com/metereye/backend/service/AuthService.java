@@ -44,12 +44,15 @@ public class AuthService {
             throw new RuntimeException("Un compte avec cet email existe déjà");
         }
 
-        // Charger le rôle
+        // Seul ADMIN ne peut pas s'auto-attribuer lors de l'inscription
         RoleName roleName;
         try {
             roleName = RoleName.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Rôle invalide. Les rôles valides sont: ADMIN, PROPRIETAIRE, LOCATAIRE, CASHPOWER, CLASSIQUE");
+            throw new RuntimeException("Rôle invalide. Les rôles valides sont: PERSONNEL, PROPRIETAIRE, LOCATAIRE");
+        }
+        if (roleName == RoleName.ADMIN) {
+            throw new RuntimeException("L'auto-inscription avec le rôle ADMIN n'est pas autorisée");
         }
 
         Role role = roleRepository.findByName(roleName)
@@ -69,14 +72,14 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         // Générer le token JWT
-        String token = jwtService.generateToken(savedUser);
+     //   String token = jwtService.generateToken(savedUser);
 
         // Sauvegarder le token
-        saveToken(savedUser, token);
+      //  saveToken(savedUser, token);
 
         // Retourner la réponse
         return AuthResponse.builder()
-                .token(token)
+             //   .token(token)
                 .role(role.getName().name())
                 .nomComplet(savedUser.getNomComplet())
                 .userId(savedUser.getId())

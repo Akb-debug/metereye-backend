@@ -20,8 +20,5 @@ public interface CompteurRepository extends JpaRepository<Compteur, Long> {
 
     List<Compteur> findByProprietaireIdAndActifTrue(Long userId);
 
-    List<Compteur> findByTypeCompteur(TypeCompteur typeCompteur);
-
-    @Query("SELECT c FROM Compteur c WHERE c.typeCompteur = 'CASH_POWER' AND c.actif = true")
-    List<Compteur> findAllCashPowerActifs();
+    List<Compteur> findByTypeCompteurAndActifTrue(TypeCompteur typeCompteur);
 }

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn spring-boot:run)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@test.com\",\"motDePasse\":\"test\"}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/register -H 'Content-Type: application/json' -d '{\"nom\":\"Test\",\"prenom\":\"Alert\",\"email\":\"alert@test.com\",\"motDePasse\":\"Password123!\",\"telephone\":\"0600000000\",\"role\":\"PROPRIETAIRE\"}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"alert@test.com\",\"motDePasse\":\"Password123!\"}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/compteurs -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiUFJPUFJJRVRBSVJFIiwidXNlcklkIjoyMSwic3ViIjoiYWxlcnRAdGVzdC5jb20iLCJpYXQiOjE3Nzc2OTcwNDUsImV4cCI6MTc3Nzc4MzQ0NX0.NmhzezPt7ghmlZnk1__u4-DI8UsHsq79owZjS8wrxp0' -d '{\"reference\":\"COMPT-TEST-001\",\"adresse\":\"123 Rue de Test, Ville\",\"typeCompteur\":\"CLASSIQUE\",\"valeurInitiale\":1000.0}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/readings/manual -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiUFJPUFJJRVRBSVJFIiwidXNlcklkIjoyMSwic3ViIjoiYWxlcnRAdGVzdC5jb20iLCJpYXQiOjE3Nzc2OTcwNDUsImV4cCI6MTc3Nzc4MzQ0NX0.NmhzezPt7ghmlZnk1__u4-DI8UsHsq79owZjS8wrxp0' -d '{\"meterId\":18,\"value\":1150.0,\"comment\":\"Relevé test alerte\"}')",
+      "Bash(netstat -ano)"
+    ]
+  }
+}

@@ -12,6 +12,10 @@
    - [Gestion des relevés](#gestion-des-relevés)
    - [Gestion des dispositifs IoT](#gestion-des-dispositifs-iot)
    - [Gestion des images](#gestion-des-images)
+   - [Gestion des maisons](#gestion-des-maisons)
+   - [Gestion des sous-compteurs](#gestion-des-sous-compteurs)
+   - [Configuration Bluetooth](#configuration-bluetooth)
+   - [Génération PDF](#génération-pdf)
    - [Alertes et notifications](#alertes-et-notifications)
 5. [Modèles de données](#modèles-de-données)
 6. [Sécurité](#sécurité)
@@ -26,8 +30,10 @@ MeterEye AI est une solution de surveillance intelligente de compteurs électriq
 - Authentification utilisateur (JWT)
 - Gestion de compteurs (Classique & CashPower)
 - Relevés multi-sources : manuels, ESP32-CAM, capteurs
-- Intégration IoT avec modules ESP32
+- Intégration IoT avec modules ESP32 et Bluetooth
 - Pipeline de traitement d'images (OCR-ready)
+- Gestion des maisons et sous-compteurs (additionneuses)
+- Système de location avec facturation PDF
 - Analytiques de consommation et statistiques
 
 ### Stack technique
@@ -999,6 +1005,720 @@ Authorization: Bearer <token>
   }
 ]
 ```
+
+---
+
+### Gestion des maisons
+
+#### POST /api/maisons
+Créer une nouvelle maison.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "nom": "Maison Principale",
+  "adresse": "123 Avenue Faidherbe, Dakar",
+  "description": "Résidence familiale"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Maison créée avec succès",
+  "data": {
+    "id": 1,
+    "nom": "Maison Principale",
+    "adresse": "123 Avenue Faidherbe, Dakar",
+    "description": "Résidence familiale",
+    "proprietaireId": 1,
+    "dateCreation": "2024-01-21T16:00:00",
+    "actif": true
+  }
+}
+```
+
+#### GET /api/maisons
+Lister toutes les maisons de l'utilisateur.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "nom": "Maison Principale",
+      "adresse": "123 Avenue Faidherbe, Dakar",
+      "description": "Résidence familiale",
+      "dateCreation": "2024-01-21T16:00:00",
+      "actif": true,
+      "nombreCompteurs": 2,
+      "nombreSousCompteurs": 3
+    }
+  ]
+}
+```
+
+#### GET /api/maisons/{id}
+Récupérer les détails d'une maison.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "nom": "Maison Principale",
+    "adresse": "123 Avenue Faidherbe, Dakar",
+    "description": "Résidence familiale",
+    "proprietaireId": 1,
+    "dateCreation": "2024-01-21T16:00:00",
+    "actif": true,
+    "compteurPrincipal": {
+      "id": 1,
+      "reference": "CMP-2024-001",
+      "typeCompteur": "CLASSIQUE"
+    },
+    "sousCompteurs": [
+      {
+        "id": 1,
+        "nom": "Appartement Étage",
+        "typeSousCompteur": "ADDITIONNEUSE"
+      }
+    ]
+  }
+}
+```
+
+#### PUT /api/maisons/{id}
+Modifier une maison.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "nom": "Maison Principale - Mise à jour",
+  "adresse": "123 Avenue Faidherbe, Dakar",
+  "description": "Résidence familiale rénovée"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Maison modifiée avec succès",
+  "data": {
+    "id": 1,
+    "nom": "Maison Principale - Mise à jour",
+    "adresse": "123 Avenue Faidherbe, Dakar",
+    "description": "Résidence familiale rénovée"
+  }
+}
+```
+
+#### DELETE /api/maisons/{id}
+Désactiver une maison (soft-delete).
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Maison désactivée avec succès"
+}
+```
+
+#### POST /api/maisons/{id}/compteur-principal
+Associer un compteur principal à une maison.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "compteurId": 1
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Compteur associé avec succès",
+  "data": {
+    "id": 1,
+    "nom": "Maison Principale",
+    "compteurPrincipal": {
+      "id": 1,
+      "reference": "CMP-2024-001"
+    }
+  }
+}
+```
+
+---
+
+### Gestion des sous-compteurs
+
+#### POST /api/sous-compteurs
+Ajouter une additionneuse (propriétaire).
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "nom": "Appartement Étage",
+  "maisonId": 1,
+  "typeSousCompteur": "ADDITIONNEUSE",
+  "description": "Additionneuse pour locataire étage"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Sous-compteur créé avec succès",
+  "data": {
+    "id": 1,
+    "nom": "Appartement Étage",
+    "maisonId": 1,
+    "typeSousCompteur": "ADDITIONNEUSE",
+    "description": "Additionneuse pour locataire étage",
+    "actif": true,
+    "dateCreation": "2024-01-21T17:00:00"
+  }
+}
+```
+
+#### GET /api/sous-compteurs/maison/{maisonId}
+Lister les additionneuses d'une maison.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "nom": "Appartement Étage",
+      "typeSousCompteur": "ADDITIONNEUSE",
+      "description": "Additionneuse pour locataire étage",
+      "actif": true,
+      "locataireAssocie": null,
+      "dernierReleve": {
+        "valeur": 150.5,
+        "date": "2024-01-20T14:30:00"
+      }
+    }
+  ]
+}
+```
+
+#### GET /api/sous-compteurs/{id}
+Détail d'un sous-compteur.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "nom": "Appartement Étage",
+    "typeSousCompteur": "ADDITIONNEUSE",
+    "maison": {
+      "id": 1,
+      "nom": "Maison Principale"
+    },
+    "locataireAssocie": {
+      "id": 2,
+      "nom": "Doe",
+      "prenom": "Jane"
+    },
+    "actif": true,
+    "dernierReleve": {
+      "valeur": 150.5,
+      "date": "2024-01-20T14:30:00"
+    }
+  }
+}
+```
+
+#### GET /api/sous-compteurs/mon-additionneuse
+Mon additionneuse (locataire).
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "nom": "Appartement Étage",
+    "typeSousCompteur": "ADDITIONNEUSE",
+    "maison": {
+      "id": 1,
+      "nom": "Maison Principale"
+    },
+    "proprietaire": {
+      "id": 1,
+      "nom": "Doe",
+      "prenom": "John"
+    },
+    "dernierReleve": {
+      "valeur": 150.5,
+      "date": "2024-01-20T14:30:00"
+    }
+  }
+}
+```
+
+#### POST /api/sous-compteurs/locataires
+Créer un compte locataire.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "nom": "Doe",
+  "prenom": "Jane",
+  "email": "jane.doe@example.com",
+  "telephone": "+221987654321",
+  "sousCompteurId": 1,
+  "montantLoyer": 50000.0
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Locataire créé avec succès",
+  "data": {
+    "locataireId": 2,
+    "userId": 2,
+    "sousCompteurId": 1,
+    "montantLoyer": 50000.0,
+    "dateDebut": "2024-01-21T18:00:00"
+  }
+}
+```
+
+#### GET /api/sous-compteurs/locataires/maison/{maisonId}
+Locataires d'une maison.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 2,
+      "nom": "Doe",
+      "prenom": "Jane",
+      "email": "jane.doe@example.com",
+      "sousCompteur": {
+        "id": 1,
+        "nom": "Appartement Étage"
+      },
+      "montantLoyer": 50000.0,
+      "actif": true
+    }
+  ]
+}
+```
+
+#### DELETE /api/sous-compteurs/locataires/{locataireId}
+Désactiver un locataire.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Locataire désactivé avec succès"
+}
+```
+
+#### POST /api/sous-compteurs/{id}/releves
+Ajouter un relevé d'additionneuse.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "valeur": 155.0,
+  "dateReleve": "2024-01-21T19:00:00",
+  "source": "MANUEL"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Relevé ajouté avec succès",
+  "data": {
+    "id": 1,
+    "valeur": 155.0,
+    "dateReleve": "2024-01-21T19:00:00",
+    "source": "MANUEL",
+    "sousCompteurId": 1,
+    "consommation": 4.5
+  }
+}
+```
+
+#### GET /api/sous-compteurs/{id}/releves
+Historique des relevés d'additionneuse.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "valeur": 155.0,
+      "dateReleve": "2024-01-21T19:00:00",
+      "source": "MANUEL",
+      "consommation": 4.5
+    },
+    {
+      "id": 2,
+      "valeur": 150.5,
+      "dateReleve": "2024-01-20T14:30:00",
+      "source": "MANUEL",
+      "consommation": 0.0
+    }
+  ]
+}
+```
+
+---
+
+### Configuration Bluetooth
+
+#### POST /api/bluetooth/scan
+Scanner un module Bluetooth.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "bluetoothAddress": "00:1A:7D:DA:71:13",
+  "deviceCode": "BT-001",
+  "typeModule": "ESP32_PZEM",
+  "firmwareVersion": "1.0.0"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Module scanné avec succès",
+  "data": {
+    "deviceCode": "BT-001",
+    "bluetoothAddress": "00:1A:7D:DA:71:13",
+    "typeModule": "ESP32_PZEM",
+    "statut": "DETECTE",
+    "configured": false,
+    "lastSeenAt": "2024-01-21T20:00:00",
+    "firmwareVersion": "1.0.0"
+  }
+}
+```
+
+#### POST /api/bluetooth/configure
+Configurer un module Bluetooth.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "bluetoothAddress": "00:1A:7D:DA:71:13",
+  "compteurId": 1,
+  "modeLectureAssocie": "SENSOR",
+  "captureInterval": 1800,
+  "nomModule": "Capteur Électricité"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Module configuré avec succès",
+  "data": {
+    "deviceCode": "BT-001",
+    "bluetoothAddress": "00:1A:7D:DA:71:13",
+    "typeModule": "ESP32_PZEM",
+    "statut": "CONFIGURE",
+    "configured": true,
+    "compteurId": 1,
+    "compteurReference": "CMP-2024-001",
+    "modeLectureAssocie": "SENSOR",
+    "captureInterval": 1800
+  }
+}
+```
+
+#### GET /api/bluetooth/available
+Modules disponibles non configurés.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "deviceCode": "BT-001",
+      "bluetoothAddress": "00:1A:7D:DA:71:13",
+      "typeModule": "ESP32_PZEM",
+      "statut": "DETECTE",
+      "configured": false,
+      "lastSeenAt": "2024-01-21T20:00:00"
+    }
+  ]
+}
+```
+
+#### POST /api/bluetooth/compatibility
+Vérifier compatibilité module-compteur.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "bluetoothAddress": "00:1A:7D:DA:71:13",
+  "compteurId": 1
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "bluetoothAddress": "00:1A:7D:DA:71:13",
+    "compteurId": 1,
+    "compatible": true,
+    "message": "Module compatible avec le compteur"
+  }
+}
+```
+
+#### GET /api/bluetooth/{bluetoothAddress}
+Informations d'un module.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deviceCode": "BT-001",
+    "bluetoothAddress": "00:1A:7D:DA:71:13",
+    "typeModule": "ESP32_PZEM",
+    "statut": "CONFIGURE",
+    "configured": true,
+    "compteurId": 1,
+    "compteurReference": "CMP-2024-001",
+    "modeLectureAssocie": "SENSOR",
+    "captureInterval": 1800,
+    "lastSeenAt": "2024-01-21T20:00:00"
+  }
+}
+```
+
+#### POST /api/bluetooth/direct-configure
+Configuration directe via adresse Bluetooth.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "bluetoothAddress": "00:1A:7D:DA:71:13",
+  "compteurId": 1,
+  "modeLectureAssocie": "SENSOR",
+  "captureInterval": 1800,
+  "deviceCode": "BT-001"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Module configuré avec succès",
+  "data": {
+    "deviceCode": "BT-001",
+    "bluetoothAddress": "00:1A:7D:DA:71:13",
+    "statut": "CONFIGURE",
+    "configured": true,
+    "compteurId": 1
+  }
+}
+```
+
+#### GET /api/bluetooth/search/{bluetoothAddress}
+Rechercher un module.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deviceCode": "BT-001",
+    "bluetoothAddress": "00:1A:7D:DA:71:13",
+    "typeModule": "ESP32_PZEM",
+    "statut": "CONFIGURE",
+    "configured": true,
+    "proprietaireId": 1,
+    "compteurId": 1
+  }
+}
+```
+
+#### DELETE /api/bluetooth/{bluetoothAddress}
+Supprimer un module non configuré.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Module supprimé avec succès"
+}
+```
+
+---
+
+### Génération PDF
+
+#### GET /api/pdf/factures/{factureId}
+Télécharger le PDF d'une facture.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="facture_1_01_2024.pdf"
+
+[Binary PDF data]
+```
+
+**Erreurs possibles:**
+- `403 Forbidden` : Accès non autorisé à la facture
+- `500 Internal Server Error` : Erreur lors de la génération du PDF
 
 ---
 

@@ -32,12 +32,49 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // ── Endpoints publics ──────────────────────────────────────────
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
+
+                        // ── MAISONS : PROPRIETAIRE ou ADMIN ───────────────────────────
+                        .requestMatchers("/api/maisons/**")
+                            .hasAnyRole("PROPRIETAIRE", "ADMIN")
+
+                        // ── SOUS-COMPTEURS : ordre des règles crucial ──────────────────
+                        // Gestion locataires → PROPRIETAIRE ou ADMIN uniquement
+                        .requestMatchers("/api/sous-compteurs/locataires/**")
+                            .hasAnyRole("PROPRIETAIRE", "ADMIN")
+                        // Mon additionneuse → LOCATAIRE (et ADMIN)
+                        .requestMatchers("/api/sous-compteurs/mon-additionneuse")
+                            .hasAnyRole("LOCATAIRE", "ADMIN")
+                        // Reste des sous-compteurs → PROPRIETAIRE ou LOCATAIRE ou ADMIN
+                        .requestMatchers("/api/sous-compteurs/**")
+                            .hasAnyRole("PROPRIETAIRE", "LOCATAIRE", "ADMIN")
+
+                        // ── RÉPARTITION ────────────────────────────────────────────────
+                        // Mes factures → LOCATAIRE (et ADMIN)
+                        .requestMatchers("/api/repartition/mes-factures")
+                            .hasAnyRole("LOCATAIRE", "ADMIN")
+                        // Générer / aperçu / par maison → PROPRIETAIRE ou ADMIN
+                        .requestMatchers(
+                                "/api/repartition/generer",
+                                "/api/repartition/apercu"
+                        ).hasAnyRole("PROPRIETAIRE", "ADMIN")
+                        .requestMatchers("/api/repartition/maison/**")
+                            .hasAnyRole("PROPRIETAIRE", "ADMIN")
+                        // Détail d'une facture → PROPRIETAIRE ou LOCATAIRE ou ADMIN
+                        .requestMatchers("/api/repartition/factures/**")
+                            .hasAnyRole("PROPRIETAIRE", "LOCATAIRE", "ADMIN")
+
+                        // ── PDF ────────────────────────────────────────────────────────
+                        .requestMatchers("/api/pdf/factures/**")
+                            .hasAnyRole("PROPRIETAIRE", "LOCATAIRE", "ADMIN")
+
+                        // ── Toutes les autres routes → authentification simple ─────────
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
